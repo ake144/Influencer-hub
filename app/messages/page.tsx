@@ -1,5 +1,6 @@
 import ChatComponent from "@/components/chat";
 import Form from "@/components/Form";
+import { Navbar } from "@/components/navbar";
 import prisma from "@/lib/db";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
@@ -54,10 +55,11 @@ export default async function Chathomepage() {
 
   const data = await getData(session.id);
 
-  return (
-    <div className="h-screen bg-gray-200 flex flex-col">
+  return (<>
+   <div className="h-screen bg-gray-200 flex flex-col">
       <ChatComponent data={data}  userId={session.id}/>
       <Form recipientId={session.id} />
     </div>
+    </>
   );
 }
