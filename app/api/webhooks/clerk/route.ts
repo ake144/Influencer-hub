@@ -76,6 +76,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ user });
   } catch (error) {
     console.error('Error processing webhook:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ message: error }, { status: 500 });
   }
 }
