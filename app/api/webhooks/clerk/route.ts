@@ -12,8 +12,11 @@ interface UserData {
   last_name?: string;
 }
 
+
 export async function POST(req: Request) {
   try {
+    const body = await req.json();
+    console.log('Received webhook:', body);
     console.log('Webhook received');
     const evt = (await req.json()) as WebhookEvent;
     console.log('Event:', evt);
@@ -62,9 +65,9 @@ export async function POST(req: Request) {
         break;
     }
 
-    return NextResponse.json({ user });
-  } catch (error) {
+    return NextResponse.json({ success: true });
+  } catch (error:any) {
     console.error('Error processing webhook:', error);
-    return NextResponse.json({message: error }, { status: 500 });
+    return NextResponse.json({ message: error.message }, { status: 500 });
   }
 }
