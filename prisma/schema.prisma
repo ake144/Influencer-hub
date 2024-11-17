@@ -1,0 +1,100 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int                     @id @default(autoincrement())
+  name         String
+  clerkUserId  String                  @unique // Clerk Authentication ID
+  email        String                  @unique
+  phone        String?
+  bio          String?
+  followers    Int?
+  profilePic   String?
+  tgUsername   String?
+  role         String                  @default("influencer") // User role: business, influencer
+  createdAt    DateTime                @default(now())
+  campaigns    Campaign[]              @relation("CampaignOwner") // Campaigns created by the user
+  applications InfluencerApplication[] // Applications submitted by the influencer
+  Message      Message[]
+}
+
+model Campaign {
+  id                 Int                     @id @default(autoincrement())
+  title              String
+  description        String
+  createdBy          Int // Foreign key to User (business owner)
+  owner              User                    @relation("CampaignOwner", fields: [createdBy], references: [id])
+  budgetId           Int
+  budget             Budget                  @relation(fields: [budgetId], references: [id])
+  timelineId         Int
+  timeline           Timeline                @relation(fields: [timelineId], references: [id])
+  createdAt          DateTime                @default(now())
+  appliedInfluencers InfluencerApplication[]
+  requirements       Requirement[] // Campaign-specific requirements
+  // metricsId          Int?
+  // metrics            Metrics?                @relation(fields: [metricsId], references: [id])
+}
+
+model InfluencerApplication {
+  id         Int      @id @default(autoincrement())
+  userId     Int // Foreign key to User (influencer)
+  user       User     @relation(fields: [userId], references: [id])
+  campaignId Int // Foreign key to Campaign
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+  status     String // Application status: pending, accepted, rejected
+  createdAt  DateTime @default(now())
+}
+
+model Requirement {
+  id         Int      @id @default(autoincrement())
+  text       String // Requirement description
+  campaignId Int // Foreign key to Campaign
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+}
+
+model Budget {
+  id      Int   @id @default(autoincrement())
+  total   Float // Total campaign budget
+  perPost Float // Budget per post
+
+  Campaign Campaign[]
+}
+
+model Timeline {
+  id                  Int      @id @default(autoincrement())
+  applicationDeadline DateTime
+  campaignStart       DateTime
+  campaignEnd         DateTime
+
+  Campaign Campaign[]
+}
+
+model Message {
+  id      Int     @id @default(autoincrement())
+  message String
+  user    User?   @relation(fields: [userId], references: [id])
+  userId  Int?
+  email   String?
+
+  createdAt DateTime @default(now())
+}
+
+// model Metrics {
+//   id             Int        @id @default(autoincrement())
+//   totalReach     Int // Total audience reach
+//   engagementRate Float // Engagement rate percentage
+//   applicants     Int // Total number of applicants
+//   Campaign       Campaign[]
+// }
