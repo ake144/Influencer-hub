@@ -2,7 +2,6 @@ import prisma from '@/lib/db';
 import type { WebhookEvent } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
-// Define a type for the user data structure from Clerk's webhook
 interface UserData {
   id: string;
   email_addresses: { email_address: string }[];
@@ -18,43 +17,55 @@ export async function POST(req: Request) {
     const evt = (await req.json()) as WebhookEvent;
     console.log('Event:', evt);
 
-    // Type-cast the data as UserData
     const userData = evt.data as UserData;
-    const { id: clerkUserId, email_addresses, username, image_url } = userData;
-    const email = email_addresses?.[0]?.email_address;
+    const { id: clerkUserId, email_addresses, username, image_url, first_name, last_name } = userData;
+
+    const email = email_addresses?.[0]?.email_address || 'unknown@example.com';
+    const name = username || `${first_name || ''} ${last_name || ''}`.trim() || 'Anonymous User';
 
     if (!clerkUserId) {
       console.error('No user ID provided');
       return NextResponse.json({ error: 'No user ID provided' }, { status: 400 });
     }
 
-    let user = null;
+    let user;
     switch (evt.type) {
       case 'user.created':
-        // Create a new user or update an existing one
         user = await prisma.user.upsert({
           where: { clerkUserId },
           update: {
             email,
-            name: username || '',
+            name,
             profilePic: image_url || null,
           },
           create: {
             clerkUserId,
             email,
-            name: username || '',
+            name,
             profilePic: image_url || null,
           },
         });
         console.log('User created/updated:', user);
         break;
 
-      case 'user.deleted':
-        // Delete the user
-        user = await prisma.user.delete({
+      case 'user.updated':
+        user = await prisma.user.update({
           where: { clerkUserId },
+          data: {
+            email,
+            name,
+            profilePic: image_url || null,
+          },
         });
-        console.log('User deleted:', user);
+        console.log('User updated:', user);
+        break;
+
+      case 'user.deleted':
+        await prisma.user.update({
+          where: { clerkUserId },
+          data: { isDeleted: true }, // Use soft delete
+        });
+        console.log('User soft-deleted:', clerkUserId);
         break;
 
       default:
@@ -65,6 +76,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ user });
   } catch (error) {
     console.error('Error processing webhook:', error);
-    return NextResponse.json({message: error }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
