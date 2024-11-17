@@ -14,66 +14,65 @@ datasource db {
 }
 
 model User {
-  id           Int                     @id @default(autoincrement())
-  name         String
-  clerkUserId  String                  @unique // Clerk Authentication ID
-  email        String                  @unique
-  phone        String?
-  bio          String?
-  followers    Int?
-  profilePic   String?
-  tgUsername   String?
-  role         String                  @default("influencer") // User role: business, influencer
-  createdAt    DateTime                @default(now())
-  campaigns    Campaign[]              @relation("CampaignOwner") // Campaigns created by the user
-  applications InfluencerApplication[] // Applications submitted by the influencer
-  Message      Message[]
+  id                 String                  @id @default(cuid()) // Unique user ID
+  name               String
+  clerkUserId        String                  @unique
+  email              String                  @unique
+  phone              String?
+  bio                String?
+  followers          Int?
+  profilePic         String?
+  tgUsername         String?
+  role               String                  @default("influencer")
+  createdAt          DateTime                @default(now())
+  campaigns          Campaign[]              @relation("CampaignOwner")
+  applications       InfluencerApplication[]
+  sentMessages       Message[]               @relation("SentMessages") // Messages sent by the user
+  receivedMessages   Message[]               @relation("ReceivedMessages") // Messages received by the user
 }
 
 model Campaign {
-  id                 Int                     @id @default(autoincrement())
+  id                 String                  @id @default(cuid()) // Updated to String with cuid()
   title              String
   description        String
-  createdBy          Int // Foreign key to User (business owner)
+  createdBy          String                  // Foreign key to User (business owner)
   owner              User                    @relation("CampaignOwner", fields: [createdBy], references: [id])
-  budgetId           Int
+  budgetId           String
   budget             Budget                  @relation(fields: [budgetId], references: [id])
-  timelineId         Int
+  timelineId         String
   timeline           Timeline                @relation(fields: [timelineId], references: [id])
   createdAt          DateTime                @default(now())
   appliedInfluencers InfluencerApplication[]
   requirements       Requirement[] // Campaign-specific requirements
-  // metricsId          Int?
-  // metrics            Metrics?                @relation(fields: [metricsId], references: [id])
 }
 
 model InfluencerApplication {
-  id         Int      @id @default(autoincrement())
-  userId     Int // Foreign key to User (influencer)
+  id         String   @id @default(cuid()) // Updated to String with cuid()
+  userId     String   // Foreign key to User (influencer)
   user       User     @relation(fields: [userId], references: [id])
-  campaignId Int // Foreign key to Campaign
+  campaignId String   // Foreign key to Campaign
   campaign   Campaign @relation(fields: [campaignId], references: [id])
-  status     String // Application status: pending, accepted, rejected
+  status     String   // Application status: pending, accepted, rejected
   createdAt  DateTime @default(now())
 }
 
 model Requirement {
-  id         Int      @id @default(autoincrement())
-  text       String // Requirement description
-  campaignId Int // Foreign key to Campaign
+  id         String   @id @default(cuid()) // Updated to String with cuid()
+  text       String   // Requirement description
+  campaignId String   // Foreign key to Campaign
   campaign   Campaign @relation(fields: [campaignId], references: [id])
 }
 
 model Budget {
-  id      Int   @id @default(autoincrement())
-  total   Float // Total campaign budget
-  perPost Float // Budget per post
+  id      String   @id @default(cuid()) // Updated to String with cuid()
+  total   Float    // Total campaign budget
+  perPost Float    // Budget per post
 
   Campaign Campaign[]
 }
 
 model Timeline {
-  id                  Int      @id @default(autoincrement())
+  id                  String   @id @default(cuid()) // Updated to String with cuid()
   applicationDeadline DateTime
   campaignStart       DateTime
   campaignEnd         DateTime
@@ -82,13 +81,13 @@ model Timeline {
 }
 
 model Message {
-  id      Int     @id @default(autoincrement())
-  message String
-  user    User?   @relation(fields: [userId], references: [id])
-  userId  Int?
-  email   String?
-
-  createdAt DateTime @default(now())
+  id           String   @id @default(cuid()) // Unique message ID
+  content      String   // The body of the message
+  senderId     String   // Foreign key referencing the sender (User.id)
+  sender       User     @relation("SentMessages", fields: [senderId], references: [id]) // Relation to the sender
+  recipientId  String   // Foreign key referencing the recipient (User.id)
+  recipient    User     @relation("ReceivedMessages", fields: [recipientId], references: [id]) // Relation to the recipient
+  createdAt    DateTime @default(now()) // Timestamp when the message was created
 }
 
 // model Metrics {

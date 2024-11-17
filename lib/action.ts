@@ -1,45 +1,62 @@
 "use server";
 
 import { currentUser } from "@clerk/nextjs/server";
-
+import prisma from "./db";
+import Pusher from "pusher";
 
 export async function postData(formData: FormData) {
   "use server";
 
-  const Pusher = require("pusher");
-    const prisma = require("./db");
+  const session = await currentUser();
 
+  if (!session) {
+    throw new Error("User is not authenticated");
+  }
 
-    const session = await currentUser();
-    
+  const senderId = session.id;
+  const recipientId = formData.get("recipientId") as string; // Recipient ID from the form
+  const content = formData.get("message") as string;
 
-  const message = formData.get("message");
+  if (!recipientId || !content) {
+    throw new Error("Recipient ID and message content are required");
+  }
 
-  const data = await prisma.message.create({
+  // Save the message in the database
+  const message = await prisma.message.create({
     data: {
-      message: message as string,
-      email: session?.primaryEmailAddress?.emailAddress,
+      content,
+      senderId,
+      recipientId,
     },
-    
     include: {
-      User: {
+      sender: {
         select: {
           name: true,
-          image: true,
+          profilePic: true,
+        },
+      },
+      recipient: {
+        select: {
+          name: true,
+          profilePic: true,
         },
       },
     },
   });
 
+  // Initialize Pusher for real-time updates
   const pusher = new Pusher({
-    appId: process.env.PUSHER_APP_ID,
-    key: process.env.NEXT_PUBLIC_PUSHER_KEY,
-    secret: process.env.PUSHER_SECRET,
+    appId: process.env.PUSHER_APP_ID!,
+    key: process.env.NEXT_PUBLIC_PUSHER_KEY!,
+    secret: process.env.PUSHER_SECRET!,
     cluster: "ap2",
     useTLS: true,
   });
 
-  await pusher.trigger("chat", "hello", {
-    message: `${JSON.stringify(data)}\n\n`,
+  // Trigger an event on the recipient's channel
+  await pusher.trigger(`chat-${recipientId}`, "new-message", {
+    message,
   });
+
+  return message;
 }

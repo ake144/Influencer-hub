@@ -5,7 +5,7 @@ import { useUser } from "@clerk/nextjs";
 import { useState, useEffect } from "react";
 
 interface Profile {
-    id: number;
+    id: string;
     name: string;
     clerkUserId: string;
     email: string;

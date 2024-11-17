@@ -17,6 +17,7 @@ const navItems = [
   { name: 'Campaigns', href: '/campaign' },
   { name: 'For Businesses', href: '/for-businesses' },
   { name: 'For Influencers', href: '/for-influencers' },
+  { name: 'Messages', href: '/messages' },
 ]
 
 export function Navbar() {
