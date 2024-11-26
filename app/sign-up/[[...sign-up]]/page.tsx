@@ -1,15 +1,20 @@
 'use client'
 
+
+
 import { SignUp, useUser } from '@clerk/nextjs';
+import { useRouter } from 'next/router';
 import { useEffect } from 'react';
 
 export default function SignUpPage() {
-  const { user } = useUser();
+  const { user } = useUser();  // Access current authenticated user
+  const router = useRouter();
 
   useEffect(() => {
-    const syncUser = async () => {
+    const handleUserSignup = async () => {
       if (user) {
         try {
+          // Sync user data to your database
           await fetch('/api/sync', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -22,14 +27,19 @@ export default function SignUpPage() {
               createdAt: user.createdAt,
             }),
           });
-        } catch (err) {
-          console.error('Error syncing user:', err);
+
+          // Redirect to the requested path or default page
+          const requestedPath = sessionStorage.getItem('requestedPath') || '/';
+          router.push(requestedPath);
+        } catch (error) {
+          console.error('Error syncing user:', error);
         }
       }
     };
 
-    syncUser();
-  }, [user]);
+    handleUserSignup();
+  }, [user, router]);
 
   return <SignUp />;
 }
+
