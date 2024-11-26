@@ -1,73 +1,42 @@
 import prisma from '@/lib/db';
-import type { WebhookEvent } from '@clerk/nextjs/server';
-import { NextResponse } from 'next/server';
-
-// Define a type for the user data structure from Clerk's webhook
-interface UserData {
-  id: string;
-  email_addresses: { email_address: string }[];
-  username?: string;
-  image_url?: string;
-  first_name?: string;
-  last_name?: string;
-}
 
 
-export async function POST(req: Request) {
+export async function POST(req:Request) {
+
   try {
     const body = await req.json();
-    console.log('Received webhook:', body);
-    console.log('Webhook received');
-    const evt = (await req.json()) as WebhookEvent;
-    console.log('Event:', evt);
+    const { type, data } = body;
 
-    // Type-cast the data as UserData
-    const userData = evt.data as UserData;
-    const { id: clerkUserId, email_addresses, username, image_url } = userData;
-    const email = email_addresses?.[0]?.email_address;
+    // Only handle specific events (e.g., user.created, user.updated)
+    if (type === 'user.created' || type === 'user.updated') {
+      const { id, email_addresses, username, image_url, created_at } = data;
 
-    if (!clerkUserId) {
-      console.error('No user ID provided');
-      return NextResponse.json({ error: 'No user ID provided' }, { status: 400 });
+      const email = email_addresses[0]?.email_address;
+
+      // Upsert user in your database
+      await prisma.user.upsert({
+        where: { clerkUserId: id },
+        update: {
+          email,
+          name: username || null,
+          profilePic: image_url || null,
+          createdAt: new Date(created_at),
+        },
+        create: {
+          clerkUserId: id,
+          email,
+          name: username || null,
+          profilePic: image_url || null,
+          createdAt: new Date(created_at),
+        },
+      });
+
+      console.log('User synced successfully:', id);
     }
 
-    let user = null;
-    switch (evt.type) {
-      case 'user.created':
-        // Create a new user or update an existing one
-        user = await prisma.user.upsert({
-          where: { clerkUserId },
-          update: {
-            email,
-            name: username || '',
-            profilePic: image_url || null,
-          },
-          create: {
-            clerkUserId,
-            email,
-            name: username || '',
-            profilePic: image_url || null,
-          },
-        });
-        console.log('User created/updated:', user);
-        break;
-
-      case 'user.deleted':
-        // Delete the user
-        user = await prisma.user.delete({
-          where: { clerkUserId },
-        });
-        console.log('User deleted:', user);
-        break;
-
-      default:
-        console.warn('Unhandled event type:', evt.type);
-        break;
-    }
-
-    return NextResponse.json({ success: true });
-  } catch (error:any) {
-    console.error('Error processing webhook:', error);
-    return NextResponse.json({ message: error.message }, { status: 500 });
+    return new Response(JSON.stringify({ message: 'Event handled' }), { status: 200 });
+  } catch (error) {
+    console.error('Error handling webhook:', error);
+    return new Response(JSON.stringify({ error: 'Webhook error' }), { status: 500 });
   }
 }

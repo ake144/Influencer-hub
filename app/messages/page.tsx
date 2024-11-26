@@ -5,42 +5,37 @@ import prisma from "@/lib/db";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
-
-
 async function getData(userId: string) {
-    return await prisma.message.findMany({
-      where: {
-        OR: [
-          { senderId: userId }, // Messages sent by the user
-          { recipientId: userId }, // Messages received by the user
-        ],
-      },
-      select: {
-        id: true,
-        content: true,
-        createdAt: true,
-        sender: {
-          select: {
-            name: true,
-            profilePic: true,
-          },
-        },
-        recipient: {
-          select: {
-            name: true,
-            profilePic: true,
-          },
+  return await prisma.message.findMany({
+    where: {
+      OR: [
+        { senderId: userId },
+        { recipientId: userId },
+      ],
+    },
+    select: {
+      id: true,
+      content: true,
+      createdAt: true,
+      sender: {
+        select: {
+          name: true,
+          profilePic: true,
         },
       },
-      orderBy: {
-        createdAt: "asc",
+      recipient: {
+        select: {
+          name: true,
+          profilePic: true,
+        },
       },
-      take: 50,
-    });
-  }
-  
-
-// Add
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+    take: 50,
+  });
+}
 
 // Force dynamic rendering for real-time updates
 export const dynamic = "force-dynamic";
@@ -55,11 +50,11 @@ export default async function Chathomepage() {
 
   const data = await getData(session.id);
 
-  return (<>
-   <div className="h-screen bg-gray-200 flex flex-col">
-      <ChatComponent data={data}  userId={session.id}/>
-      <Form recipientId={session.id} />
+  return (
+    <div className="h-screen bg-gray-200 flex flex-col">
+      <Navbar />
+      <ChatComponent data={data} userId={session.id} />
+      <Form />
     </div>
-    </>
   );
 }

@@ -28,6 +28,15 @@ export const updateProfile = async (userId: string, data: any) => {
 }
 
 
+export const getUsers=async ()=>{
+    try{
+        const users=await prisma.user.findMany()
+        return users
+    }
+    catch(e){
+        return null
+    }
+}
 
 
 export const getCampaigns = async (userId: string) => {

@@ -21,6 +21,8 @@ export async function postData(formData: FormData) {
     throw new Error("Recipient ID and message content are required");
   }
 
+
+  console.log(recipientId, content);
   // Save the message in the database
   const message = await prisma.message.create({
     data: {
